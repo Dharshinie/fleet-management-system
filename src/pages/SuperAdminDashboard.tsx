@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Users, Shield, Palette, LayoutDashboard, Map, DollarSign, Server, Globe } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SystemOverviewWidgets from '@/components/super-admin/SystemOverviewWidgets';
 import UserManagementPanel from '@/components/super-admin/UserManagementPanel';
@@ -26,6 +27,43 @@ const SuperAdminDashboard = () => {
         {/* Row 1: System Overview KPIs */}
         <motion.div {...fadeUp}>
           <SystemOverviewWidgets />
+        </motion.div>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.05 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <Link
+            to="/fleet"
+            className="glass-panel glass-shine rounded-lg p-5 flex items-center justify-between hover:shadow-lg transition-shadow"
+          >
+            <div>
+              <p className="label-caps">Live Monitoring</p>
+              <h3 className="text-lg font-semibold tracking-tight">Open Live Map View</h3>
+              <p className="text-xs text-muted-foreground">
+                Monitor live fleet positions, alerts, and driver activity in one place.
+              </p>
+            </div>
+            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
+              <Map className="w-5 h-5 text-primary" />
+            </div>
+          </Link>
+
+          <div className="glass-panel glass-shine rounded-lg p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="label-caps">System Control</p>
+                <h3 className="text-lg font-semibold tracking-tight">Oversee Operations</h3>
+                <p className="text-xs text-muted-foreground">
+                  Review user access, finance, infrastructure, and zones from the tabs below.
+                </p>
+              </div>
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         <div className="divider-glow" />

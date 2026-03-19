@@ -1,8 +1,8 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { vehicles, type Vehicle, type VehicleStatus } from '@/data/mockData';
 import { useEffect } from 'react';
+import { type Vehicle, type VehicleStatus } from '@/data/mockData';
 
 const statusColors: Record<VehicleStatus, string> = {
   active: '#22c55e',
@@ -11,38 +11,46 @@ const statusColors: Record<VehicleStatus, string> = {
   idle: '#64748b',
 };
 
-const createVehicleIcon = (status: VehicleStatus) => {
+const createVehicleIcon = (status: VehicleStatus, selected = false) => {
   const color = statusColors[status];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
+  const size = selected ? 34 : 28;
+  const innerRadius = selected ? 7 : 5;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="10" fill="${color}" opacity="0.2"/>
-    <circle cx="12" cy="12" r="5" fill="${color}"/>
+    <circle cx="12" cy="12" r="${innerRadius}" fill="${color}"/>
     <circle cx="12" cy="12" r="3" fill="hsl(220,15%,8%)"/>
   </svg>`;
+
   return L.divIcon({
     html: svg,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 };
 
 function FitBounds({ vehicles }: { vehicles: Vehicle[] }) {
   const map = useMap();
+
   useEffect(() => {
     if (vehicles.length > 0) {
-      const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
+      const bounds = L.latLngBounds(vehicles.map((vehicle) => [vehicle.lat, vehicle.lng]));
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [vehicles, map]);
+
   return null;
 }
 
 interface FleetMapProps {
+  vehicles: Vehicle[];
   onVehicleSelect?: (vehicle: Vehicle) => void;
   selectedVehicleId?: string | null;
+  zones?: any;
 }
 
-export default function FleetMap({ onVehicleSelect, selectedVehicleId }: FleetMapProps) {
+export default function FleetMap({ vehicles, onVehicleSelect, selectedVehicleId, zones }: FleetMapProps) {
+  const GeoJSONAny = GeoJSON as any;
   const MapContainerAny = MapContainer as any;
   const TileLayerAny = TileLayer as any;
   const MarkerAny = Marker as any;
@@ -62,20 +70,34 @@ export default function FleetMap({ onVehicleSelect, selectedVehicleId }: FleetMa
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
         <FitBounds vehicles={vehicles} />
+        {zones && (
+          <GeoJSONAny
+            data={zones as any}
+            style={() => ({
+              color: 'hsl(171 66% 45%)',
+              weight: 2,
+              fillColor: 'hsl(171 66% 45%)',
+              fillOpacity: 0.1,
+            })}
+          />
+        )}
         {vehicles.map((vehicle) => (
           <MarkerAny
             key={vehicle.id}
             position={[vehicle.lat, vehicle.lng]}
-            icon={createVehicleIcon(vehicle.status)}
+            icon={createVehicleIcon(vehicle.status, vehicle.id === selectedVehicleId)}
             eventHandlers={{
               click: () => onVehicleSelect?.(vehicle),
             }}
           >
             <PopupAny className="fleet-popup">
               <div className="font-sans text-xs space-y-1">
-                <div className="font-semibold text-sm">{vehicle.id} — {vehicle.plate}</div>
-                <div className="font-mono-data">{vehicle.lat.toFixed(3)}° N, {Math.abs(vehicle.lng).toFixed(3)}° W</div>
-                <div>{vehicle.speed} mph · {vehicle.fuelLevel}% fuel</div>
+                <div className="font-semibold text-sm">{vehicle.id} - {vehicle.plate}</div>
+                <div className="font-mono-data">
+                  {vehicle.lat.toFixed(3)} deg N, {Math.abs(vehicle.lng).toFixed(3)} deg W
+                </div>
+                <div>{vehicle.speed} mph - {vehicle.fuelLevel}% fuel</div>
+                <div className="text-muted-foreground">{vehicle.make} {vehicle.model}</div>
               </div>
             </PopupAny>
           </MarkerAny>

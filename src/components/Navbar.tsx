@@ -65,7 +65,7 @@ const Navbar = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-gray-600">
               <User className="mr-2 h-4 w-4" />
-              Profile (Coming soon)
+              Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-600">

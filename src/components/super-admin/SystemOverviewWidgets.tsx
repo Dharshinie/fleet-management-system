@@ -1,12 +1,13 @@
-import { fleetStats, vehicles, drivers, geofenceAlerts } from '@/data/mockData';
+import { fleetStats, drivers } from '@/data/mockData';
+import { analyticsSummary } from '@/data/mockAnalytics';
 import { Truck, Route, Users, Fuel, AlertTriangle, Activity } from 'lucide-react';
 
 const kpis = [
   { label: 'Total Vehicles', value: fleetStats.totalVehicles, icon: Truck, accent: 'text-primary' },
   { label: 'Active Trips', value: fleetStats.activeTrips, icon: Route, accent: 'text-status-active' },
   { label: 'Drivers Online', value: drivers.filter(d => d.assignedVehicleId).length, icon: Users, accent: 'text-primary' },
-  { label: 'Fuel Usage Today', value: `${fleetStats.totalDistanceToday} gal`, icon: Fuel, accent: 'text-status-maintenance' },
-  { label: 'Active Alerts', value: fleetStats.alertsToday, icon: AlertTriangle, accent: 'text-status-emergency' },
+  { label: 'Fuel Receipts', value: analyticsSummary.fuelReceiptCount.toLocaleString(), icon: Fuel, accent: 'text-status-maintenance' },
+  { label: 'Active Alerts', value: analyticsSummary.maintenanceLogCount.toLocaleString(), icon: AlertTriangle, accent: 'text-status-emergency' },
   { label: 'System Health', value: '98.7%', icon: Activity, accent: 'text-status-active' },
 ];
 

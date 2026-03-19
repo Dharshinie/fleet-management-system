@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-warehouse",
+        "name": "Warehouse Zone",
+        "description": "Test zone near the warehouse corridor"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-74.0068, 40.7165],
+            [-74.0008, 40.7165],
+            [-74.0008, 40.7228],
+            [-74.0068, 40.7228],
+            [-74.0068, 40.7165]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-midtown",
+        "name": "Midtown Control Zone",
+        "description": "Test zone around a city landmark corridor"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-73.9898, 40.7475],
+            [-73.9732, 40.7475],
+            [-73.9732, 40.7618],
+            [-73.9898, 40.7618],
+            [-73.9898, 40.7475]
+          ]
+        ]
+      }
+    }
+  ]
+}

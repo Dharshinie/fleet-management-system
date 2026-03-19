@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider, getDashboardRouteByRole, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.tsx";
@@ -13,29 +13,23 @@ import Signup from "./pages/Signup.tsx";
 import Unauthorized from "./pages/Unauthorized.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useFirebaseBootstrap } from "@/hooks/useFirebaseBootstrap";
 
 const queryClient = new QueryClient();
 
 // Component to handle root path routing based on user role
 const RootRedirect = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
-  if (!isAuthenticated) {
+  if (loading && !user) {
+    return null;
+  }
+
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Redirect to role-specific dashboard
-  const roleRoutes: Record<string, string> = {
-    'super-admin': '/super-admin',
-    'admin': '/admin',
-    'driver': '/driver',
-  };
-
-  return <Navigate to={roleRoutes[user.role] || '/'} replace />;
+  return <Navigate to={getDashboardRouteByRole(user.role)} replace />;
 };
 
 const AppRoutes = () => (
@@ -87,6 +81,12 @@ const AppRoutes = () => (
   </Routes>
 );
 
+const AppShell = () => {
+  useFirebaseBootstrap();
+
+  return <AppRoutes />;
+};
+
 const App = () => (
   <AuthProvider>
     <QueryClientProvider client={queryClient}>
@@ -94,7 +94,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppRoutes />
+          <AppShell />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

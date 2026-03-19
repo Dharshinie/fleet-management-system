@@ -1,29 +1,31 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FleetMap from '@/components/FleetMap';
 import VehicleSidebar from '@/components/VehicleSidebar';
 import StatusBar from '@/components/StatusBar';
 import AlertsPanel from '@/components/AlertsPanel';
 import DriverAnalytics from '@/components/DriverAnalytics';
-import type { Vehicle } from '@/data/mockData';
+import { useVehicles } from '@/hooks/useVehicles';
+import { useFleetSimulation } from '@/hooks/useFleetSimulation';
 import { Map, Users, Bell, Truck, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type RightPanel = 'alerts' | 'drivers' | null;
 
 const Index = () => {
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>('alerts');
+  const { vehicles, loading } = useVehicles();
+  const { simulatedVehicles, geofenceAlerts, testZones } = useFleetSimulation(vehicles, !loading);
 
-  const handleVehicleSelect = (vehicle: Vehicle) => {
-    setSelectedVehicle(prev => prev?.id === vehicle.id ? null : vehicle);
-  };
+  const selectedVehicle = useMemo(
+    () => simulatedVehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null,
+    [selectedVehicleId, simulatedVehicles]
+  );
 
   return (
     <div className="h-screen w-screen flex overflow-hidden">
-      {/* Left Sidebar - Vehicle Roster */}
       <div className="w-72 flex-shrink-0 glass-sidebar flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -47,39 +49,40 @@ const Index = () => {
               <LayoutDashboard className="w-4 h-4" />
             </Link>
           </div>
-          <p className="text-[10px] text-muted-foreground font-mono-data">FMS v2.4.0 — Live</p>
+          <p className="text-[10px] text-muted-foreground font-mono-data">FMS v2.4.0 - Simulated Live</p>
         </div>
         <VehicleSidebar
-          selectedVehicleId={selectedVehicle?.id}
-          onVehicleSelect={handleVehicleSelect}
+          selectedVehicleId={selectedVehicleId}
+          onVehicleSelect={(vehicle) => setSelectedVehicleId((currentId) => currentId === vehicle.id ? null : vehicle.id)}
+          vehicles={simulatedVehicles}
+          loading={loading}
         />
       </div>
 
-      {/* Main Content - Map */}
       <div className="flex-1 relative flex flex-col">
         <div className="flex-1 relative">
           <FleetMap
-            onVehicleSelect={handleVehicleSelect}
-            selectedVehicleId={selectedVehicle?.id}
+            vehicles={simulatedVehicles}
+            zones={testZones as any}
+            onVehicleSelect={(vehicle) => setSelectedVehicleId((currentId) => currentId === vehicle.id ? null : vehicle.id)}
+            selectedVehicleId={selectedVehicleId}
           />
 
-          {/* Right panel toggle buttons */}
           <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1">
             <PanelToggle
               icon={Bell}
               active={rightPanel === 'alerts'}
-              onClick={() => setRightPanel(p => p === 'alerts' ? null : 'alerts')}
+              onClick={() => setRightPanel((panel) => panel === 'alerts' ? null : 'alerts')}
               label="Alerts"
             />
             <PanelToggle
               icon={Users}
               active={rightPanel === 'drivers'}
-              onClick={() => setRightPanel(p => p === 'drivers' ? null : 'drivers')}
+              onClick={() => setRightPanel((panel) => panel === 'drivers' ? null : 'drivers')}
               label="Drivers"
             />
           </div>
 
-          {/* Right Panel Overlay */}
           <AnimatePresence>
             {rightPanel && (
               <motion.div
@@ -89,16 +92,21 @@ const Index = () => {
                 transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
                 className="absolute top-0 right-12 bottom-0 w-72 z-[999] glass-panel-strong"
               >
-                {rightPanel === 'alerts' && <AlertsPanel />}
+                {rightPanel === 'alerts' && (
+                  <AlertsPanel alerts={geofenceAlerts} vehicles={simulatedVehicles} />
+                )}
                 {rightPanel === 'drivers' && <DriverAnalytics />}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Bottom Status Bar */}
         <div className="p-3 z-[1000]">
-          <StatusBar selectedVehicle={selectedVehicle} />
+          <StatusBar
+            selectedVehicle={selectedVehicle}
+            vehicles={simulatedVehicles}
+            alertsCount={geofenceAlerts.length}
+          />
         </div>
       </div>
     </div>

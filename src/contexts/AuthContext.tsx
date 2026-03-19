@@ -1,4 +1,14 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User as FirebaseUser } from 'firebase/auth';
+import {
+  isFirebaseConfigured,
+  firebaseCreateUser,
+  firebaseGetValueOnce,
+  firebaseSignIn,
+  firebaseSignOut,
+  firebaseOnAuthStateChanged,
+  firebaseSetValue,
+} from '@/firebase';
 
 export type UserRole = 'super-admin' | 'admin' | 'driver';
 
@@ -12,79 +22,198 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, role: UserRole, name: string) => Promise<void>;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<User>;
+  signup: (email: string, password: string, role: UserRole, name: string) => Promise<User>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = 'fleetcommand_user';
+
+export const getDashboardRouteByRole = (role: UserRole) => {
+  const roleRoutes: Record<UserRole, string> = {
+    'super-admin': '/super-admin',
+    'admin': '/admin',
+    'driver': '/driver',
+  };
+
+  return roleRoutes[role];
+};
+
+const normalizeRole = (role?: string | null): UserRole | null => {
+  if (role === 'super-admin' || role === 'admin' || role === 'driver') {
+    return role;
+  }
+
+  return null;
+};
+
+const inferRoleFromEmail = (email?: string | null): UserRole => {
+  const normalizedEmail = email?.toLowerCase() ?? '';
+
+  if (normalizedEmail.includes('super')) {
+    return 'super-admin';
+  }
+
+  if (normalizedEmail.includes('admin')) {
+    return 'admin';
+  }
+
+  return 'driver';
+};
+
+const resolveUserRole = (profileRole?: string | null, email?: string | null): UserRole => {
+  return normalizeRole(profileRole) ?? inferRoleFromEmail(email);
+};
+
+const buildUserFromFirebase = async (firebaseUser: FirebaseUser): Promise<User> => {
+  try {
+    const profile = await firebaseGetValueOnce<{ email?: string; role?: UserRole; name?: string }>(
+      `users/${firebaseUser.uid}`
+    );
+
+    const resolvedEmail = firebaseUser.email ?? profile?.email ?? '';
+
+    if (!profile) {
+      return {
+        id: firebaseUser.uid,
+        email: resolvedEmail,
+        role: resolveUserRole(undefined, resolvedEmail),
+        name: resolvedEmail.split('@')[0] ?? 'User',
+      };
+    }
+
+    return {
+      id: firebaseUser.uid,
+      email: resolvedEmail,
+      role: resolveUserRole(profile.role, resolvedEmail),
+      name: profile.name ?? resolvedEmail.split('@')[0] ?? 'User',
+    };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+
+    const resolvedEmail = firebaseUser.email ?? '';
+
+    return {
+      id: firebaseUser.uid,
+      email: resolvedEmail,
+      role: resolveUserRole(undefined, resolvedEmail),
+      name: resolvedEmail.split('@')[0] ?? 'User',
+    };
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => {
-    // Load user from localStorage on mount
-    const stored = localStorage.getItem('user');
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = firebaseOnAuthStateChanged(async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          const appUser = await buildUserFromFirebase(firebaseUser);
+          setUser(appUser);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appUser));
+        } else {
+          setUser(null);
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.error('Auth state error:', error);
+        setUser(null);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Mock validation
-    if (!email || !password) {
-      throw new Error('Email and password are required');
+    if (!isFirebaseConfigured) {
+      throw new Error('Firebase is not configured.');
     }
 
-    // For demo purposes, we'll create a user based on email patterns
-    let role: UserRole = 'driver';
-    if (email.includes('admin')) {
-      role = 'admin';
-    } else if (email.includes('super')) {
-      role = 'super-admin';
+    setLoading(true);
+
+    try {
+      const firebaseUser = await firebaseSignIn(email, password);
+      const appUser = await buildUserFromFirebase(firebaseUser);
+
+      setUser(appUser);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appUser));
+
+      return appUser;
+    } finally {
+      setLoading(false);
     }
-
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      role,
-      name: email.split('@')[0],
-    };
-
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
   };
 
   const signup = async (email: string, password: string, role: UserRole, name: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Mock validation
-    if (!email || !password || !name) {
-      throw new Error('All fields are required');
+    if (!isFirebaseConfigured) {
+      throw new Error('Firebase is not configured.');
     }
 
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+    setLoading(true);
+
+    try {
+      const firebaseUser = await firebaseCreateUser(email, password);
+      const profile = {
+        email,
+        role,
+        name,
+        createdAt: Date.now(),
+      };
+
+      await firebaseSetValue(`users/${firebaseUser.uid}`, profile);
+
+      const appUser: User = {
+        id: firebaseUser.uid,
+        email,
+        role,
+        name,
+      };
+
+      setUser(appUser);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appUser));
+
+      return appUser;
+    } finally {
+      setLoading(false);
     }
-
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      role,
-      name,
-    };
-
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (isFirebaseConfigured) {
+      await firebaseSignOut();
+    }
+
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        loading,
+        login,
+        signup,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -92,8 +221,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
   }
+
   return context;
 };

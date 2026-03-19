@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, type UserRole } from '@/contexts/AuthContext';
+import { getDashboardRouteByRole, useAuth, type UserRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +31,8 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      await signup(email, password, role, name);
-      navigate('/');
+      const user = await signup(email, password, role, name);
+      navigate(getDashboardRouteByRole(user.role), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {

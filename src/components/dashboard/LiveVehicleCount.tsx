@@ -1,5 +1,6 @@
-import { vehicles, type VehicleStatus } from '@/data/mockData';
+import { type VehicleStatus } from '@/data/mockData';
 import { Truck, Circle, Wrench, AlertTriangle } from 'lucide-react';
+import { useVehicles } from '@/hooks/useVehicles';
 
 const statusConfig: Record<VehicleStatus, { label: string; icon: typeof Truck; dotClass: string }> = {
   active: { label: 'Active', icon: Circle, dotClass: 'status-active' },
@@ -9,6 +10,8 @@ const statusConfig: Record<VehicleStatus, { label: string; icon: typeof Truck; d
 };
 
 export default function LiveVehicleCount() {
+  const { vehicles, loading } = useVehicles();
+
   const grouped = vehicles.reduce<Record<VehicleStatus, number>>((acc, v) => {
     acc[v.status] = (acc[v.status] || 0) + 1;
     return acc;
@@ -19,7 +22,9 @@ export default function LiveVehicleCount() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="label-caps mb-1">Live Vehicle Count</p>
-          <h3 className="text-lg font-semibold tracking-tight">{vehicles.length} Total</h3>
+          <h3 className="text-lg font-semibold tracking-tight">
+            {loading ? 'Loading…' : `${vehicles.length} Total`}
+          </h3>
         </div>
         <Truck className="w-5 h-5 text-primary" />
       </div>
@@ -27,7 +32,7 @@ export default function LiveVehicleCount() {
         {(Object.keys(statusConfig) as VehicleStatus[]).map((status) => {
           const config = statusConfig[status];
           const count = grouped[status];
-          const pct = Math.round((count / vehicles.length) * 100);
+          const pct = vehicles.length ? Math.round((count / vehicles.length) * 100) : 0;
           return (
             <div key={status}>
               <div className="flex items-center justify-between text-xs mb-1">
