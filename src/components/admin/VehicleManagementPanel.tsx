@@ -28,7 +28,6 @@ const statusOptions = [
 export default function VehicleManagementPanel() {
   const { vehicles: remoteVehicles } = useVehicles();
   const { drivers } = useDrivers();
-  const [vehicles, setVehicles] = useState<Vehicle[]>(remoteVehicles);
   const [search, setSearch] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -45,7 +44,7 @@ export default function VehicleManagementPanel() {
   });
 
   const filteredVehicles = useMemo(() => {
-    return vehicles.filter((v) => {
+    return remoteVehicles.filter((v) => {
       const q = search.toLowerCase();
       return (
         v.id.toLowerCase().includes(q) ||
@@ -54,7 +53,7 @@ export default function VehicleManagementPanel() {
         v.model.toLowerCase().includes(q)
       );
     });
-  }, [search, vehicles]);
+  }, [remoteVehicles, search]);
 
   const resetForm = () => {
     setFormData({
@@ -68,10 +67,6 @@ export default function VehicleManagementPanel() {
       lastService: '',
     });
   };
-
-  useEffect(() => {
-    setVehicles(remoteVehicles);
-  }, [remoteVehicles]);
 
   useEffect(() => {
     if (remoteVehicles.length === 0) {
@@ -114,7 +109,7 @@ export default function VehicleManagementPanel() {
     }
 
     const normalizedId = formData.id.trim();
-    const existing = vehicles.find((v) => v.id === normalizedId);
+    const existing = remoteVehicles.find((v) => v.id === normalizedId);
     const updated: Vehicle = {
       ...formData,
       id: normalizedId,
@@ -132,16 +127,6 @@ export default function VehicleManagementPanel() {
       fuelLevel: existing?.fuelLevel ?? 100,
     };
 
-    setVehicles((prev) => {
-      const exists = prev.findIndex((v) => v.id === updated.id);
-      if (exists !== -1) {
-        const copy = [...prev];
-        copy[exists] = updated;
-        return copy;
-      }
-      return [...prev, updated];
-    });
-
     if (isFirebaseConfigured) {
       await firebaseSetValue(`vehicles/${updated.id}`, updated);
     }
@@ -152,9 +137,8 @@ export default function VehicleManagementPanel() {
   };
 
   const handleDelete = async (id: string) => {
-    setVehicles((prev) => prev.filter((v) => v.id !== id));
     if (selectedVehicle?.id === id) {
-      const remainingVehicles = vehicles.filter((v) => v.id !== id);
+      const remainingVehicles = remoteVehicles.filter((v) => v.id !== id);
       setSelectedVehicle(remainingVehicles[0] ?? null);
     }
 
