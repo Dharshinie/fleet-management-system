@@ -1,14 +1,16 @@
-import { trips } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Star, Route, Fuel, TrendingUp, Shield, UserRound } from 'lucide-react';
 import { getDriverPlaceholderImage } from '@/lib/uiPlaceholders';
 import { useManagedUsers } from '@/hooks/useManagedUsers';
 import { useDrivers } from '@/hooks/useDrivers';
-import { latestDriverScores } from '@/data/mockAnalytics';
+import { useTrips } from '@/hooks/useTrips';
+import { useLatestDriverScores } from '@/hooks/useLatestDriverScores';
 
 export default function DriverAnalytics() {
   const { users } = useManagedUsers();
   const { drivers } = useDrivers();
+  const { trips } = useTrips();
+  const { latestDriverScores } = useLatestDriverScores();
   const driverUsers = users.filter((user) => user.role === 'driver');
 
   return (
@@ -31,24 +33,24 @@ export default function DriverAnalytics() {
               transition={{ delay: index * 0.04, duration: 0.15, ease: [0.2, 0, 0, 1] }}
               className="p-3 rounded-md hover:bg-accent transition-colors duration-150"
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
+              <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                   <img
                     src={getDriverPlaceholderImage(user.id)}
                     alt={user.name}
                     className="h-10 w-10 rounded-full object-cover border border-border/60"
                   />
-                  <div>
-                    <span className="font-semibold text-sm">{user.name}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-semibold text-sm">{user.name}</span>
                     <span className="ml-2 font-mono-data text-[10px] text-muted-foreground">{user.role}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-status-maintenance">
+                <div className="flex items-center gap-1 text-status-maintenance sm:justify-end">
                   <Star className="w-3 h-3 fill-current" />
                   <span className="font-mono-data text-xs">{driverScore?.score ?? 'N/A'}</span>
                 </div>
               </div>
-                <div className="grid grid-cols-3 gap-2 text-[10px]">
+              <div className="grid grid-cols-1 gap-2 text-[10px] sm:grid-cols-3">
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Route className="w-3 h-3" />
                   <span className="font-mono-data">{driverScore?.tripsCompleted ?? driverRecord?.tripsCompleted ?? 0} trips</span>

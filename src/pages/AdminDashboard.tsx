@@ -1,4 +1,3 @@
-import { fleetStats } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Truck, Route, Fuel, AlertTriangle, Map } from 'lucide-react';
@@ -13,6 +12,7 @@ import DocumentExpiryWidget from '@/components/dashboard/DocumentExpiryWidget';
 import VehicleManagementPanel from '@/components/admin/VehicleManagementPanel';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useManagedUsers } from '@/hooks/useManagedUsers';
+import { useFleetStats } from '@/hooks/useFleetStats';
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const { vehicles } = useVehicles();
   const { users } = useManagedUsers();
+  const { fleetStats } = useFleetStats();
 
   const summaryCards = [
     { label: 'Total Vehicles', value: vehicles.length, icon: Truck, accent: 'text-primary' },
@@ -45,8 +46,8 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="max-w-[1440px] mx-auto px-6 py-6 space-y-5">
-        <div className="grid grid-cols-4 gap-4">
+      <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card, i) => (
             <motion.div
               key={card.label}
@@ -93,7 +94,7 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.2 }}>
             <LiveVehicleCount />
           </motion.div>
@@ -102,8 +103,8 @@ const AdminDashboard = () => {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }} className="col-span-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }} className="xl:col-span-2">
             <FuelConsumptionChart />
           </motion.div>
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.35 }}>

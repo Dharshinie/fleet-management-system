@@ -1,8 +1,9 @@
-import { fleetStats, geofenceAlerts, vehicles as fallbackVehicles } from '@/data/mockData';
+import { geofenceAlerts, vehicles as fallbackVehicles } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Truck, AlertTriangle, Wrench, Fuel, Route, Bell } from 'lucide-react';
 import type { Vehicle } from '@/data/mockData';
 import { useDrivers } from '@/hooks/useDrivers';
+import { useTrips } from '@/hooks/useTrips';
 
 interface StatusBarProps {
   selectedVehicle: Vehicle | null;
@@ -16,6 +17,7 @@ export default function StatusBar({
   alertsCount = geofenceAlerts.length,
 }: StatusBarProps) {
   const { drivers } = useDrivers();
+  const { trips } = useTrips();
 
   if (selectedVehicle) {
     const driver = drivers.find((item) => item.id === selectedVehicle.driverId);
@@ -27,14 +29,14 @@ export default function StatusBar({
         transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
         className="glass-panel rounded-lg p-4"
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <span className={`status-dot status-${selectedVehicle.status}`} />
-            <h3 className="font-semibold tracking-tight">{selectedVehicle.id} - {selectedVehicle.plate}</h3>
+            <h3 className="truncate font-semibold tracking-tight">{selectedVehicle.id} - {selectedVehicle.plate}</h3>
           </div>
-          <span className="label-caps">{selectedVehicle.status}</span>
+          <span className="label-caps self-start sm:self-auto">{selectedVehicle.status}</span>
         </div>
-        <div className="grid grid-cols-4 gap-4 text-xs">
+        <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <p className="label-caps mb-1">Coordinates</p>
             <p className="font-mono-data">{selectedVehicle.lat.toFixed(3)} deg N</p>
@@ -76,11 +78,11 @@ export default function StatusBar({
 
   return (
     <div className="glass-panel rounded-lg p-4">
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <StatBlock icon={Truck} label="Active" value={grouped.active} accent="text-status-active" />
         <StatBlock icon={Wrench} label="Maint." value={grouped.maintenance} accent="text-status-maintenance" />
         <StatBlock icon={AlertTriangle} label="Emergency" value={grouped.emergency} accent="text-status-emergency" />
-        <StatBlock icon={Route} label="Active Trips" value={fleetStats.activeTrips} accent="text-primary" />
+        <StatBlock icon={Route} label="Active Trips" value={trips.filter((trip) => trip.status === 'active').length} accent="text-primary" />
         <StatBlock
           icon={Fuel}
           label="Avg. Fuel"
@@ -95,7 +97,7 @@ export default function StatusBar({
 
 function StatBlock({ icon: Icon, label, value, accent }: { icon: typeof Truck; label: string; value: number; accent: string }) {
   return (
-    <div className="text-center">
+    <div className="rounded-md bg-accent/20 px-2 py-3 text-center">
       <Icon className={`w-4 h-4 mx-auto mb-1 ${accent}`} />
       <p className="font-mono-data text-lg font-semibold">{value}</p>
       <p className="label-caps">{label}</p>
